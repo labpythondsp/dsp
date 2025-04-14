@@ -269,66 +269,67 @@ plt.show()
 import numpy as np
 import matplotlib.pyplot as plt
 
-x_n = [int(num) for num in input("Enter the x_n separated by spaces: ").split()]
-N = len(x_n)
+# Input DFT values
+X_k = [complex(num) for num in input("Enter the X_k separated by spaces: ").split()]
+N = len(X_k)
 
-# Initialize the twiddle factor matrix
-twiddle_matrix = np.zeros((N, N), dtype=complex)
+# Initialize the inverse twiddle factor matrix
+inv_w_mat = np.zeros((N, N), dtype=complex)
 
-# Compute only unique twiddle factors using periodicity and symmetry
-WN = np.exp(-2j * np.pi / N)  # Fundamental twiddle factor
-twiddle_factors = {}
+# to compute only unique twiddle factor using properties
+WN = np.exp(-2j * np.pi / N)  # twiddle factor
+inv_w_fac = {}
 
 for k in range(N):
     for n in range(N):
-        exponent = (k * n) % N  # Using periodicity W_N^(n+k) = W_N^k
-        if exponent not in twiddle_factors:
-            twiddle_factors[exponent] = WN**exponent
-        twiddle_matrix[k, n] = twiddle_factors[exponent]
+        peri_exp = (k * n) % N  # Using periodicity W_N^(n+k) = W_N^k
+        symm_exp = (n*k) % N/2  # Using symmetric property here
+        if peri_exp not in inv_w_fac:
+            inv_w_fac[peri_exp] = WN**(-peri_exp)  # Conjugate twiddle for IDFT
+            inv_w_mat[k, n] = inv_w_fac[peri_exp]
+        elif symm_exp not in inv_w_fac:
+            inv_w_fac[symm_exp] = -WN**(-symm_exp)  # Conjugate twiddle for IDFT
+            inv_w_mat[k, n] = inv_w_fac[symm_exp]
+        inv_w_mat[k, n] = inv_w_fac[peri_exp]
 
-print("\nTwiddle Factor Matrix:")
-print(twiddle_matrix)
+print("\nInverse Twiddle Factor Matrix:")
+print(inv_w_mat)
 
-# Compute DFT using the optimized twiddle matrix
-X_k = np.dot(twiddle_matrix, x_n)
+# Compute IDFT using the optimized inverse twiddle matrix
+x_n_manual = (1 / N) * np.dot(inv_w_mat, X_k)
 
-print("\nDFT of the sequence (Manual Calculation):")
-for i, val in enumerate(X_k):
-    print(f"X[{i}] = {val}")
+print("\nIDFT of the sequence (Manual Calculation):")
+for i, val in enumerate(x_n_manual):
+    print(f"x[{i}] = {val}")
 
-# Compute DFT using NumPy's FFT for verification
-X_k_fft = np.fft.fft(x_n)
+# to check whether manual one is correct or not
+x_n_ifft = np.fft.ifft(X_k)
 
-print("\nDFT of the sequence (Using NumPy FFT):")
-for i, val in enumerate(X_k_fft):
-    print(f"X_fft[{i}] = {val}")
+print("\nIDFT of the sequence (Using NumPy IFFT):")
+for i, val in enumerate(x_n_ifft):
+    print(f"x_ifft[{i}] = {val}")
 
-# Check if manual DFT matches NumPy's FFT
-if np.allclose(X_k, X_k_fft):
-    print("\n The manually computed DFT matches NumPy's FFT!")
-else:
-    print("\n The manually computed DFT does NOT match NumPy's FFT!")
 
-# Plot Magnitude and Phase Spectrum
+# Plot Magnitude and Phase Spectrum of the IDFT result
 plt.figure(figsize=(12, 5))
 
-# Magnitude Spectrum
+# Magnitude Spectrum of the IDFT result
 plt.subplot(1, 2, 1)
-plt.stem(range(N), np.abs(X_k), basefmt=" ", label="Manual DFT")
-plt.stem(range(N), np.abs(X_k_fft), basefmt=" ", markerfmt='ro', linefmt='r', label="NumPy FFT")
-plt.xlabel('Frequency Index (k)')
+plt.stem(range(N), np.abs(x_n_manual), basefmt=" ", label="Manual IDFT")
+plt.stem(range(N), np.abs(x_n_ifft), basefmt=" ", markerfmt='ro', linefmt='r', label="NumPy IFFT")
+plt.xlabel('Time Index (n)')
 plt.ylabel('Magnitude')
-plt.title('DFT Magnitude Spectrum')
+plt.title('IDFT Magnitude Spectrum')
 plt.legend()
 plt.grid()
 
-# Phase Spectrum
+# Phase Spectrum of the IDFT result
 plt.subplot(1, 2, 2)
-plt.stem(range(N), np.angle(X_k), basefmt=" ", label="Manual DFT")
-plt.stem(range(N), np.angle(X_k_fft), basefmt=" ", markerfmt='ro', linefmt='r', label="NumPy FFT")
-plt.xlabel('Frequency Index (k)')
+plt.stem(range(N), np.angle(x_n_manual), basefmt=" ", label="Manual IDFT")
+plt.stem(range(N), np.angle(x_n_ifft), basefmt=" ", markerfmt='ro', linefmt='r', label="NumPy IFFT")
+plt.xlabel('Time Index (n)')
 plt.ylabel('Phase (radians)')
-plt.title('DFT Phase Spectrum')
+plt.title('IDFT Phase Spectrum')
 plt.legend()
 plt.grid()
 
